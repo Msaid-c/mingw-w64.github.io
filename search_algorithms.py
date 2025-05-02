@@ -147,3 +147,30 @@ def min_spanning_tree(graph, start, goal):
 
     prev = {v: u for u, v in tree_edges}
     return reconstruct_path(prev, start, graph.find_closest_vertex(goal))
+
+
+class MapGraph:
+    def __init__(self, graph_data=None):
+        self.nodes = {}
+        self.edges = {}
+        if graph_data:
+            self.load(graph_data)
+
+    def load(self, graph_data):
+        import json
+        with open(graph_data, 'r') as f:
+            data = json.load(f)
+        self.nodes = data["nodes"]
+        self.edges = data["edges"]
+
+    def neighbors(self, node):
+        return self.edges.get(str(node), [])
+
+    def distance(self, a, b):
+        coord_a = self.nodes[str(a)]
+        coord_b = self.nodes[str(b)]
+        return ((coord_a[0] - coord_b[0]) ** 2 + (coord_a[1] - coord_b[1]) ** 2 + (coord_a[2] - coord_b[2]) ** 2) ** 0.5
+
+    def find_closest_vertex(self, point):
+        from math import dist
+        return min(self.nodes, key=lambda k: dist(self.nodes[k], point))
