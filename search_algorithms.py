@@ -2,8 +2,8 @@ import math
 import heapq
 from queue import Queue
 
-from app import graph
-from app.graph import MapGraph
+import graph
+from graph import MapGraph
 
 def euclidean(a, b):
     return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
