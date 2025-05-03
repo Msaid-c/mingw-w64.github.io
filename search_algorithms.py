@@ -2,9 +2,6 @@ import math
 import heapq
 from queue import Queue
 
-import graph
-from graph import MapGraph
-
 def euclidean(a, b):
     return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
 
@@ -20,7 +17,7 @@ def reconstruct_path(prev, start, goal, graph):
     path.reverse()
     return path
 
-def breadth_first(start, dest):
+def breadth_first(start, dest, graph):
     start = graph.find_closest_vertex(start)
     dest = graph.find_closest_vertex(dest)
     queue = Queue()
@@ -42,7 +39,7 @@ def breadth_first(start, dest):
 
     return reconstruct_path(prev, start, dest, graph)
 
-def depth_first(start, dest):
+def depth_first(start, dest, graph):
     start = graph.find_closest_vertex(start)
     dest = graph.find_closest_vertex(dest)
     visited = set()
@@ -62,7 +59,7 @@ def depth_first(start, dest):
     dfs(start)
     return reconstruct_path(prev, start, dest, graph)
 
-def bellman_ford(start, dest):
+def bellman_ford(start, dest, graph):
     start = graph.find_closest_vertex(start)
     dest = graph.find_closest_vertex(dest)
     dist = {v: float('inf') for v in graph.vertices()}
@@ -81,7 +78,7 @@ def bellman_ford(start, dest):
         return []
     return reconstruct_path(prev, start, dest, graph)
 
-def dijkstra(start, dest):
+def dijkstra(start, dest, graph):
     start = graph.find_closest_vertex(start)
     dest = graph.find_closest_vertex(dest)
     dist = {start: 0}
@@ -102,7 +99,7 @@ def dijkstra(start, dest):
 
     return reconstruct_path(prev, start, dest, graph)
 
-def astar(start, dest):
+def astar(start, dest, graph):
     start = graph.find_closest_vertex(start)
     dest = graph.find_closest_vertex(dest)
     open_set = [(0, start)]
@@ -124,7 +121,7 @@ def astar(start, dest):
 
     return []
 
-def min_spanning_tree(start, dest):
+def min_spanning_tree(start, dest, graph):
     start = graph.find_closest_vertex(start)
     dest = graph.find_closest_vertex(dest)
     visited = set()
