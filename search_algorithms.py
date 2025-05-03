@@ -1,23 +1,24 @@
-import heapq
 import math
+import heapq
 from queue import Queue
 
 def euclidean(a, b):
     return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
 
-def reconstruct_path(prev, start, goal):
+def reconstruct_path(prev, start, goal, graph):
     path = []
     current = goal
     while current != start:
-        path.append(current)
+        path.append(graph.coordinates(current))
         current = prev.get(current)
         if current is None:
             return []
-    path.append(start)
+    path.append(graph.coordinates(start))
     path.reverse()
     return path
 
-def breadth_first(graph, start, dest):
+def breadth_first(start, dest):
+    from app import graph
     start = graph.find_closest_vertex(start)
     dest = graph.find_closest_vertex(dest)
     queue = Queue()
@@ -37,78 +38,31 @@ def breadth_first(graph, start, dest):
                 prev[neighbor] = current
                 queue.put(neighbor)
 
-    return reconstruct_path(prev, start, dest)
+    return reconstruct_path(prev, start, dest, graph)
 
-def depth_first(graph, start, dest):
+def depth_first(start, dest):
+    from app import graph
     start = graph.find_closest_vertex(start)
     dest = graph.find_closest_vertex(dest)
     visited = set()
     prev = {}
 
-    def dfs(current):
-        if current == dest:
+    def dfs(node):
+        if node == dest:
             return True
-        visited.add(current)
-        for neighbor in graph.neighbors(current):
+        visited.add(node)
+        for neighbor in graph.neighbors(node):
             if neighbor not in visited:
-                prev[neighbor] = current
+                prev[neighbor] = node
                 if dfs(neighbor):
                     return True
         return False
 
-    if dfs(start):
-        return reconstruct_path(prev, start, dest)
-    return []
+    dfs(start)
+    return reconstruct_path(prev, start, dest, graph)
 
-def dijkstra(graph, start, dest):
-    start = graph.find_closest_vertex(start)
-    dest = graph.find_closest_vertex(dest)
-    dist = {start: 0}
-    prev = {}
-    visited = set()
-    heap = [(0, start)]
-
-    while heap:
-        current_dist, current = heapq.heappop(heap)
-        if current in visited:
-            continue
-        visited.add(current)
-        if current == dest:
-            break
-        for neighbor in graph.neighbors(current):
-            weight = euclidean(graph.coordinates(current), graph.coordinates(neighbor))
-            new_dist = dist[current] + weight
-            if neighbor not in dist or new_dist < dist[neighbor]:
-                dist[neighbor] = new_dist
-                prev[neighbor] = current
-                heapq.heappush(heap, (new_dist, neighbor))
-
-    return reconstruct_path(prev, start, dest)
-
-def astar(graph, start, dest):
-    start = graph.find_closest_vertex(start)
-    dest = graph.find_closest_vertex(dest)
-    open_set = [(0, start)]
-    g_score = {start: 0}
-    f_score = {start: euclidean(graph.coordinates(start), graph.coordinates(dest))}
-    prev = {}
-
-    while open_set:
-        _, current = heapq.heappop(open_set)
-        if current == dest:
-            return reconstruct_path(prev, start, dest)
-
-        for neighbor in graph.neighbors(current):
-            tentative_g = g_score[current] + euclidean(graph.coordinates(current), graph.coordinates(neighbor))
-            if neighbor not in g_score or tentative_g < g_score[neighbor]:
-                prev[neighbor] = current
-                g_score[neighbor] = tentative_g
-                f_score[neighbor] = tentative_g + euclidean(graph.coordinates(neighbor), graph.coordinates(dest))
-                heapq.heappush(open_set, (f_score[neighbor], neighbor))
-
-    return []
-
-def bellman_ford(graph, start, dest):
+def bellman_ford(start, dest):
+    from app import graph
     start = graph.find_closest_vertex(start)
     dest = graph.find_closest_vertex(dest)
     dist = {v: float('inf') for v in graph.vertices()}
@@ -123,26 +77,78 @@ def bellman_ford(graph, start, dest):
                     dist[v] = dist[u] + weight
                     prev[v] = u
 
-    return reconstruct_path(prev, start, dest) if dist[dest] != float('inf') else []
+    if dist[dest] == float('inf'):
+        return []
+    return reconstruct_path(prev, start, dest, graph)
 
-def min_spanning_tree(graph, start, dest):
+def dijkstra(start, dest):
+    from app import graph
     start = graph.find_closest_vertex(start)
-    parent = {start: None}
-    visited = set()
-    heap = [(0, start, None)]
-    tree_edges = []
+    dest = graph.find_closest_vertex(dest)
+    dist = {start: 0}
+    prev = {}
+    heap = [(0, start)]
 
     while heap:
-        weight, current, p = heapq.heappop(heap)
+        cost, node = heapq.heappop(heap)
+        if node == dest:
+            break
+        for neighbor in graph.neighbors(node):
+            weight = euclidean(graph.coordinates(node), graph.coordinates(neighbor))
+            new_cost = cost + weight
+            if neighbor not in dist or new_cost < dist[neighbor]:
+                dist[neighbor] = new_cost
+                prev[neighbor] = node
+                heapq.heappush(heap, (new_cost, neighbor))
+
+    return reconstruct_path(prev, start, dest, graph)
+
+def astar(start, dest):
+    from app import graph
+    start = graph.find_closest_vertex(start)
+    dest = graph.find_closest_vertex(dest)
+    open_set = [(0, start)]
+    g_score = {start: 0}
+    f_score = {start: euclidean(graph.coordinates(start), graph.coordinates(dest))}
+    prev = {}
+
+    while open_set:
+        _, current = heapq.heappop(open_set)
+        if current == dest:
+            return reconstruct_path(prev, start, dest, graph)
+        for neighbor in graph.neighbors(current):
+            tentative_g = g_score[current] + euclidean(graph.coordinates(current), graph.coordinates(neighbor))
+            if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                prev[neighbor] = current
+                g_score[neighbor] = tentative_g
+                f_score[neighbor] = tentative_g + euclidean(graph.coordinates(neighbor), graph.coordinates(dest))
+                heapq.heappush(open_set, (f_score[neighbor], neighbor))
+
+    return []
+
+def min_spanning_tree(start, dest):
+    from app import graph
+    start = graph.find_closest_vertex(start)
+    dest = graph.find_closest_vertex(dest)
+    visited = set()
+    heap = [(0, start, None)]
+    tree = {}
+
+    while heap:
+        weight, current, parent = heapq.heappop(heap)
         if current in visited:
             continue
         visited.add(current)
-        if p is not None:
-            tree_edges.append((p, current))
+        if parent is not None:
+            tree[current] = parent
         for neighbor in graph.neighbors(current):
             if neighbor not in visited:
                 dist = euclidean(graph.coordinates(current), graph.coordinates(neighbor))
                 heapq.heappush(heap, (dist, neighbor, current))
 
-    prev = {v: u for u, v in tree_edges}
-    return reconstruct_path(prev, start, graph.find_closest_vertex(dest))
+    prev = {}
+    node = dest
+    while node in tree:
+        prev[node] = tree[node]
+        node = tree[node]
+    return reconstruct_path(prev, start, dest, graph)
