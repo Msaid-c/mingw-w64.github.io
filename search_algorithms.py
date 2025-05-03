@@ -17,9 +17,9 @@ def reconstruct_path(prev, start, goal):
     path.reverse()
     return path
 
-def breadth_first(graph, start, goal):
+def breadth_first(graph, start, dest):
     start = graph.find_closest_vertex(start)
-    goal = graph.find_closest_vertex(goal)
+    dest = graph.find_closest_vertex(dest)
     queue = Queue()
     visited = set()
     prev = {}
@@ -29,7 +29,7 @@ def breadth_first(graph, start, goal):
 
     while not queue.empty():
         current = queue.get()
-        if current == goal:
+        if current == dest:
             break
         for neighbor in graph.neighbors(current):
             if neighbor not in visited:
@@ -37,16 +37,16 @@ def breadth_first(graph, start, goal):
                 prev[neighbor] = current
                 queue.put(neighbor)
 
-    return reconstruct_path(prev, start, goal)
+    return reconstruct_path(prev, start, dest)
 
-def depth_first(graph, start, goal):
+def depth_first(graph, start, dest):
     start = graph.find_closest_vertex(start)
-    goal = graph.find_closest_vertex(goal)
+    dest = graph.find_closest_vertex(dest)
     visited = set()
     prev = {}
 
     def dfs(current):
-        if current == goal:
+        if current == dest:
             return True
         visited.add(current)
         for neighbor in graph.neighbors(current):
@@ -57,12 +57,12 @@ def depth_first(graph, start, goal):
         return False
 
     if dfs(start):
-        return reconstruct_path(prev, start, goal)
+        return reconstruct_path(prev, start, dest)
     return []
 
-def dijkstra(graph, start, goal):
+def dijkstra(graph, start, dest):
     start = graph.find_closest_vertex(start)
-    goal = graph.find_closest_vertex(goal)
+    dest = graph.find_closest_vertex(dest)
     dist = {start: 0}
     prev = {}
     visited = set()
@@ -73,7 +73,7 @@ def dijkstra(graph, start, goal):
         if current in visited:
             continue
         visited.add(current)
-        if current == goal:
+        if current == dest:
             break
         for neighbor in graph.neighbors(current):
             weight = euclidean(graph.coordinates(current), graph.coordinates(neighbor))
@@ -83,34 +83,34 @@ def dijkstra(graph, start, goal):
                 prev[neighbor] = current
                 heapq.heappush(heap, (new_dist, neighbor))
 
-    return reconstruct_path(prev, start, goal)
+    return reconstruct_path(prev, start, dest)
 
-def astar(graph, start, goal):
+def astar(graph, start, dest):
     start = graph.find_closest_vertex(start)
-    goal = graph.find_closest_vertex(goal)
+    dest = graph.find_closest_vertex(dest)
     open_set = [(0, start)]
     g_score = {start: 0}
-    f_score = {start: euclidean(graph.coordinates(start), graph.coordinates(goal))}
+    f_score = {start: euclidean(graph.coordinates(start), graph.coordinates(dest))}
     prev = {}
 
     while open_set:
         _, current = heapq.heappop(open_set)
-        if current == goal:
-            return reconstruct_path(prev, start, goal)
+        if current == dest:
+            return reconstruct_path(prev, start, dest)
 
         for neighbor in graph.neighbors(current):
             tentative_g = g_score[current] + euclidean(graph.coordinates(current), graph.coordinates(neighbor))
             if neighbor not in g_score or tentative_g < g_score[neighbor]:
                 prev[neighbor] = current
                 g_score[neighbor] = tentative_g
-                f_score[neighbor] = tentative_g + euclidean(graph.coordinates(neighbor), graph.coordinates(goal))
+                f_score[neighbor] = tentative_g + euclidean(graph.coordinates(neighbor), graph.coordinates(dest))
                 heapq.heappush(open_set, (f_score[neighbor], neighbor))
 
     return []
 
-def bellman_ford(graph, start, goal):
+def bellman_ford(graph, start, dest):
     start = graph.find_closest_vertex(start)
-    goal = graph.find_closest_vertex(goal)
+    dest = graph.find_closest_vertex(dest)
     dist = {v: float('inf') for v in graph.vertices()}
     prev = {}
     dist[start] = 0
@@ -123,9 +123,9 @@ def bellman_ford(graph, start, goal):
                     dist[v] = dist[u] + weight
                     prev[v] = u
 
-    return reconstruct_path(prev, start, goal) if dist[goal] != float('inf') else []
+    return reconstruct_path(prev, start, dest) if dist[dest] != float('inf') else []
 
-def min_spanning_tree(graph, start, goal):
+def min_spanning_tree(graph, start, dest):
     start = graph.find_closest_vertex(start)
     parent = {start: None}
     visited = set()
@@ -144,33 +144,5 @@ def min_spanning_tree(graph, start, goal):
                 dist = euclidean(graph.coordinates(current), graph.coordinates(neighbor))
                 heapq.heappush(heap, (dist, neighbor, current))
 
-
     prev = {v: u for u, v in tree_edges}
-    return reconstruct_path(prev, start, graph.find_closest_vertex(goal))
-
-
-class MapGraph:
-    def __init__(self, graph_data=None):
-        self.nodes = {}
-        self.edges = {}
-        if graph_data:
-            self.load(graph_data)
-
-    def load(self, graph_data):
-        import json
-        with open(graph_data, 'r') as f:
-            data = json.load(f)
-        self.nodes = data["nodes"]
-        self.edges = data["edges"]
-
-    def neighbors(self, node):
-        return self.edges.get(str(node), [])
-
-    def distance(self, a, b):
-        coord_a = self.nodes[str(a)]
-        coord_b = self.nodes[str(b)]
-        return ((coord_a[0] - coord_b[0]) ** 2 + (coord_a[1] - coord_b[1]) ** 2 + (coord_a[2] - coord_b[2]) ** 2) ** 0.5
-
-    def find_closest_vertex(self, point):
-        from math import dist
-        return min(self.nodes, key=lambda k: dist(self.nodes[k], point))
+    return reconstruct_path(prev, start, graph.find_closest_vertex(dest))
