@@ -45,7 +45,7 @@ def reconstruct_path(prev, start, goal):
     path.reverse()
     return path
 
-def breadth_first_search(start, dest):
+def breadth_first(start, dest):
     start_node = graph.find_closest_vertex(start)
     dest_node = graph.find_closest_vertex(dest)
     visited = set()
@@ -62,7 +62,7 @@ def breadth_first_search(start, dest):
                 visited.add(neighbor)
                 prev[neighbor] = node
                 queue.put(neighbor)
-    return [graph.get_position(v) for v in reconstruct_path(prev, start_node, dest_node)]
+    return reconstruct_path(prev, start_node, dest_node)
 
 def breadth_first_hub(start, dest):
     start_node = graph.find_closest_vertex(start)
@@ -74,13 +74,13 @@ def breadth_first_hub(start, dest):
     path = []
     current = start_node
     for hub in hubs[:3]:
-        sub_path = breadth_first_search(graph.get_position(current), graph.get_position(hub))
+        sub_path = breadth_first(graph.get_position(current), graph.get_position(hub))
         if not sub_path:
             continue
         path.extend(sub_path[:-1])
         current = hub
 
-    final_leg = breadth_first_search(graph.get_position(current), graph.get_position(dest_node))
+    final_leg = breadth_first(graph.get_position(current), graph.get_position(dest_node))
     if final_leg:
         path.extend(final_leg)
     else:
@@ -88,7 +88,7 @@ def breadth_first_hub(start, dest):
 
     return path
 
-def depth_first_search(start, dest):
+def depth_first(start, dest):
     start_node = graph.find_closest_vertex(start)
     dest_node = graph.find_closest_vertex(dest)
     visited = set()
@@ -105,7 +105,7 @@ def depth_first_search(start, dest):
                     stack.append(neighbor)
                     if neighbor not in prev:
                         prev[neighbor] = node
-    return [graph.get_position(v) for v in reconstruct_path(prev, start_node, dest_node)]
+    return reconstruct_path(prev, start_node, dest_node)
 
 def depth_first_best(start, dest):
     start_node = graph.find_closest_vertex(start)
@@ -126,7 +126,7 @@ def depth_first_best(start, dest):
                     stack.append(neighbor)
                     if neighbor not in prev:
                         prev[neighbor] = node
-    return [graph.get_position(v) for v in reconstruct_path(prev, start_node, dest_node)]
+    return reconstruct_path(prev, start_node, dest_node)
 
 def dijkstra(start, dest):
     start_node = graph.find_closest_vertex(start)
@@ -149,7 +149,7 @@ def dijkstra(start, dest):
                 cost[neighbor] = total
                 prev[neighbor] = node
                 heapq.heappush(pq, (total, neighbor))
-    return [graph.get_position(v) for v in reconstruct_path(prev, start_node, dest_node)]
+    return reconstruct_path(prev, start_node, dest_node)
 
 def astar(start, dest):
     start_node = graph.find_closest_vertex(start)
@@ -178,7 +178,7 @@ def astar(start, dest):
                 f_score = tentative_g + heuristic(neighbor)
                 heapq.heappush(open_set, (f_score, neighbor))
 
-    return [graph.get_position(v) for v in reconstruct_path(parent, start_node, dest_node)]
+    return reconstruct_path(parent, start_node, dest_node)
 
 def bellman_ford(start, dest):
     start_node = graph.find_closest_vertex(start)
@@ -193,7 +193,7 @@ def bellman_ford(start, dest):
                 if dist[u] + weight < dist[v]:
                     dist[v] = dist[u] + weight
                     prev[v] = u
-    return [graph.get_position(v) for v in reconstruct_path(prev, start_node, dest_node)]
+    return reconstruct_path(prev, start_node, dest_node)
 
 def bellman_ford_negative(start, dest):
     start_node = graph.find_closest_vertex(start)
@@ -210,7 +210,7 @@ def bellman_ford_negative(start, dest):
                 if dist[u] + weight < dist[v]:
                     dist[v] = dist[u] + weight
                     prev[v] = u
-    return [graph.get_position(v) for v in reconstruct_path(prev, start_node, dest_node)]
+    return reconstruct_path(prev, start_node, dest_node)
 
 def min_spanning_tree(start, dest):
     parent = {}
@@ -232,7 +232,11 @@ def min_spanning_tree(start, dest):
                 heapq.heappush(pq, (edge_weight, neighbor, node))
 
     dest_node = graph.find_closest_vertex(dest)
-    return [graph.get_position(v) for v in reconstruct_path(parent, start_node, dest_node)]
+    return reconstruct_path(parent, start_node, dest_node)
+
+
+breadth_first = breadth_first
+depth_first = depth_first
 
 def search(algorithm, start, dest):
     if algorithm == 'p2p':
@@ -242,11 +246,11 @@ def search(algorithm, start, dest):
     elif algorithm == 'random':
         return random_graph(start, dest)
     elif algorithm == 'bfs':
-        return breadth_first_search(start, dest)
+        return breadth_first(start, dest)
     elif algorithm == 'bfsh':
         return breadth_first_hub(start, dest)
     elif algorithm == 'dfs':
-        return depth_first_search(start, dest)
+        return depth_first(start, dest)
     elif algorithm == 'dfsb':
         return depth_first_best(start, dest)
     elif algorithm == 'bf':
