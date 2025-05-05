@@ -2,7 +2,6 @@ import math
 import json
 import heapq
 from queue import Queue
-from collections import defaultdict
 
 class MapGraph:
     def __init__(self, json_file):
