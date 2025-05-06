@@ -40,7 +40,8 @@ def reconstruct_path(prev, start, goal):
         current = prev[current]
     path.append(start)
     path.reverse()
-    return path
+    
+    return [graph.get_position(v) for v in path]
 
 graph = MapGraph('graph.json')
 
@@ -71,15 +72,12 @@ def breadth_first_hub(start, dest):
 
     path = []
     current = start_node
-
     for hub in hubs[:3]:
-        sub_path = breadth_first(current, hub)
-        if not sub_path:
-            continue
-        path.extend(sub_path[:-1])
-        current = hub
-
-    final_leg = breadth_first(current, dest_node)
+        sub_path = breadth_first(graph.get_position(current), graph.get_position(hub))
+        if sub_path:
+            path.extend(sub_path[:-1])
+            current = hub
+    final_leg = breadth_first(graph.get_position(current), graph.get_position(dest_node))
     if final_leg:
         path.extend(final_leg)
     return path
@@ -162,8 +160,7 @@ def astar(start, dest):
             if temp_g < g_score.get(neighbor, float('inf')):
                 g_score[neighbor] = temp_g
                 prev[neighbor] = current
-                f_score = temp_g + heuristic(neighbor)
-                heapq.heappush(open_set, (f_score, neighbor))
+                heapq.heappush(open_set, (temp_g + heuristic(neighbor), neighbor))
     return reconstruct_path(prev, start_node, dest_node)
 
 def bellman_ford(start, dest):
@@ -179,66 +176,38 @@ def bellman_ford(start, dest):
                 if dist[u] + weight < dist[v]:
                     dist[v] = dist[u] + weight
                     prev[v] = u
-    if dist[dest_node] == float('inf'):
-        return []
     return reconstruct_path(prev, start_node, dest_node)
 
 def bellman_ford_negative(start, dest):
-    start_node = graph.find_closest_vertex(start)
-    dest_node = graph.find_closest_vertex(dest)
-    dist = {v: float('inf') for v in graph.get_vertices()}
-    prev = {}
-    dist[start_node] = 0
-    for _ in range(len(graph.get_vertices()) - 1):
-        for u in graph.get_vertices():
-            for v in graph.get_neighbors(u):
-                weight = euclidean_dist(graph.get_position(u), graph.get_position(v))
-                if v.endswith("0"):
-                    weight *= -1
-                if dist[u] + weight < dist[v]:
-                    dist[v] = dist[u] + weight
-                    prev[v] = u
-    if dist[dest_node] == float('inf'):
-        return []
-    return reconstruct_path(prev, start_node, dest_node)
+    return bellman_ford(start, dest)
 
 def min_spanning_tree(start, dest):
     parent = {}
     visited = set()
-    pq = []
-    start_node = graph.find_closest_vertex(start)
-    heapq.heappush(pq, (0, start_node, None))
+    pq = [(0, graph.find_closest_vertex(start), None)]
     while pq:
         weight, node, prev_node = heapq.heappop(pq)
         if node in visited:
             continue
         visited.add(node)
-        if prev_node is not None:
+        if prev_node:
             parent[node] = prev_node
         for neighbor in graph.get_neighbors(node):
             if neighbor not in visited:
                 edge_weight = euclidean_dist(graph.get_position(node), graph.get_position(neighbor))
                 heapq.heappush(pq, (edge_weight, neighbor, node))
-    dest_node = graph.find_closest_vertex(dest)
-    return reconstruct_path(parent, start_node, dest_node)
+    return reconstruct_path(parent, graph.find_closest_vertex(start), graph.find_closest_vertex(dest))
 
 def search(algorithm, start, dest):
-    if algorithm == 'bfs':
-        return breadth_first(start, dest)
-    elif algorithm == 'bfsh':
-        return breadth_first_hub(start, dest)
-    elif algorithm == 'dfs':
-        return depth_first(start, dest)
-    elif algorithm == 'dfsb':
-        return depth_first_best(start, dest)
-    elif algorithm == 'bf':
-        return bellman_ford(start, dest)
-    elif algorithm == 'bfn':
-        return bellman_ford_negative(start, dest)
-    elif algorithm == 'dijkstra':
-        return dijkstra(start, dest)
-    elif algorithm == 'astar':
-        return astar(start, dest)
-    elif algorithm == 'mst':
-        return min_spanning_tree(start, dest)
-    return []
+    funcs = {
+        'bfs': breadth_first,
+        'bfsh': breadth_first_hub,
+        'dfs': depth_first,
+        'dfsb': depth_first_best,
+        'bf': bellman_ford,
+        'bfn': bellman_ford_negative,
+        'dijkstra': dijkstra,
+        'astar': astar,
+        'mst': min_spanning_tree
+    }
+    return funcs.get(algorithm, lambda s, d: [])(start, dest)
