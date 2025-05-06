@@ -1,6 +1,36 @@
 import math
+import json
 import heapq
 from queue import Queue
+
+
+def euclidean_dist(a, b):
+    return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+
+
+class MapGraph:
+    def __init__(self, json_file):
+        with open(json_file) as f:
+            self.graph = json.load(f)
+
+    def get_vertices(self):
+        return list(self.graph['E'].keys())
+
+    def get_neighbors(self, v):
+        return self.graph['E'][v]
+
+    def get_position(self, v):
+        return self.graph['V'][v]['position']
+
+    def find_closest_vertex(self, point):
+        closest = None
+        min_dist = float('inf')
+        for vertex in self.get_vertices():
+            dist = euclidean_dist(point, self.get_position(vertex))
+            if dist < min_dist:
+                min_dist = dist
+                closest = vertex
+        return closest
 
 
 def breadth_first(start_point, end_point):
