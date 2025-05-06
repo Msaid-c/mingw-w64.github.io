@@ -40,14 +40,11 @@ def reconstruct_path(prev, start, goal):
         current = prev[current]
     path.append(start)
     path.reverse()
-    
     return [graph.get_position(v) for v in path]
 
 graph = MapGraph('graph.json')
 
-def breadth_first(start, dest):
-    start_node = graph.find_closest_vertex(start)
-    dest_node = graph.find_closest_vertex(dest)
+def bfs_ids(start_node, dest_node):
     visited = set()
     prev = {}
     queue = Queue()
@@ -62,6 +59,10 @@ def breadth_first(start, dest):
                 visited.add(neighbor)
                 prev[neighbor] = node
                 queue.put(neighbor)
+    return prev, start_node, dest_node
+
+def breadth_first(start, dest):
+    prev, start_node, dest_node = bfs_ids(graph.find_closest_vertex(start), graph.find_closest_vertex(dest))
     return reconstruct_path(prev, start_node, dest_node)
 
 def breadth_first_hub(start, dest):
@@ -73,11 +74,13 @@ def breadth_first_hub(start, dest):
     path = []
     current = start_node
     for hub in hubs[:3]:
-        sub_path = breadth_first(graph.get_position(current), graph.get_position(hub))
+        prev, sn, dn = bfs_ids(current, hub)
+        sub_path = reconstruct_path(prev, sn, dn)
         if sub_path:
             path.extend(sub_path[:-1])
             current = hub
-    final_leg = breadth_first(graph.get_position(current), graph.get_position(dest_node))
+    prev, sn, dn = bfs_ids(current, dest_node)
+    final_leg = reconstruct_path(prev, sn, dn)
     if final_leg:
         path.extend(final_leg)
     return path
@@ -176,6 +179,12 @@ def bellman_ford(start, dest):
                 if dist[u] + weight < dist[v]:
                     dist[v] = dist[u] + weight
                     prev[v] = u
+  
+    for u in graph.get_vertices():
+        for v in graph.get_neighbors(u):
+            weight = euclidean_dist(graph.get_position(u), graph.get_position(v))
+            if dist[u] + weight < dist[v]:
+                return []
     return reconstruct_path(prev, start_node, dest_node)
 
 def bellman_ford_negative(start, dest):
