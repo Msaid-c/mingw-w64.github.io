@@ -27,9 +27,6 @@ class MapGraph:
                 closest = vertex
         return closest
 
-
-graph = MapGraph('graph.json')
-
 def euclidean_dist(a, b):
     return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
 
@@ -37,13 +34,15 @@ def reconstruct_path(prev, start, goal):
     path = []
     current = goal
     while current != start:
-        path.append(current)
-        current = prev.get(current)
-        if current is None:
+        if current not in prev:
             return []
+        path.append(current)
+        current = prev[current]
     path.append(start)
     path.reverse()
     return path
+
+graph = MapGraph('graph.json')
 
 def breadth_first(start, dest):
     start_node = graph.find_closest_vertex(start)
@@ -62,17 +61,18 @@ def breadth_first(start, dest):
                 visited.add(neighbor)
                 prev[neighbor] = node
                 queue.put(neighbor)
-    return reconstruct_path(prev, start_node, dest_node)
+    path_nodes = reconstruct_path(prev, start_node, dest_node)
+    return [graph.get_position(v) for v in path_nodes]
 
 def breadth_first_hub(start, dest):
     start_node = graph.find_closest_vertex(start)
     dest_node = graph.find_closest_vertex(dest)
-
     hubs = [v for v in graph.get_vertices() if len(graph.get_neighbors(v)) >= 5]
     hubs.sort(key=lambda h: euclidean_dist(graph.get_position(h), graph.get_position(dest_node)), reverse=True)
 
     path = []
     current = start_node
+
     for hub in hubs[:3]:
         sub_path = breadth_first(graph.get_position(current), graph.get_position(hub))
         if not sub_path:
@@ -83,9 +83,6 @@ def breadth_first_hub(start, dest):
     final_leg = breadth_first(graph.get_position(current), graph.get_position(dest_node))
     if final_leg:
         path.extend(final_leg)
-    else:
-        return []
-
     return path
 
 def depth_first(start, dest):
@@ -105,7 +102,8 @@ def depth_first(start, dest):
                     stack.append(neighbor)
                     if neighbor not in prev:
                         prev[neighbor] = node
-    return reconstruct_path(prev, start_node, dest_node)
+    path_nodes = reconstruct_path(prev, start_node, dest_node)
+    return [graph.get_position(v) for v in path_nodes]
 
 def depth_first_best(start, dest):
     start_node = graph.find_closest_vertex(start)
@@ -126,59 +124,52 @@ def depth_first_best(start, dest):
                     stack.append(neighbor)
                     if neighbor not in prev:
                         prev[neighbor] = node
-    return reconstruct_path(prev, start_node, dest_node)
+    path_nodes = reconstruct_path(prev, start_node, dest_node)
+    return [graph.get_position(v) for v in path_nodes]
 
 def dijkstra(start, dest):
     start_node = graph.find_closest_vertex(start)
     dest_node = graph.find_closest_vertex(dest)
-    visited = set()
     prev = {}
     cost = {start_node: 0}
     pq = [(0, start_node)]
     while pq:
         current_cost, node = heapq.heappop(pq)
-        if node in visited:
-            continue
-        visited.add(node)
         if node == dest_node:
             break
+        if current_cost > cost.get(node, float('inf')):
+            continue
         for neighbor in graph.get_neighbors(node):
             weight = euclidean_dist(graph.get_position(node), graph.get_position(neighbor))
             total = current_cost + weight
-            if neighbor not in cost or total < cost[neighbor]:
+            if total < cost.get(neighbor, float('inf')):
                 cost[neighbor] = total
                 prev[neighbor] = node
                 heapq.heappush(pq, (total, neighbor))
-    return reconstruct_path(prev, start_node, dest_node)
+    path_nodes = reconstruct_path(prev, start_node, dest_node)
+    return [graph.get_position(v) for v in path_nodes]
 
 def astar(start, dest):
     start_node = graph.find_closest_vertex(start)
     dest_node = graph.find_closest_vertex(dest)
-
-    def heuristic(node):
-        return euclidean_dist(graph.get_position(node), graph.get_position(dest_node))
-
+    def heuristic(n):
+        return euclidean_dist(graph.get_position(n), graph.get_position(dest_node))
     open_set = [(heuristic(start_node), start_node)]
     g_score = {start_node: 0}
-    parent = {}
-    visited = set()
-
+    prev = {}
     while open_set:
         _, current = heapq.heappop(open_set)
         if current == dest_node:
             break
-        if current in visited:
-            continue
-        visited.add(current)
         for neighbor in graph.get_neighbors(current):
-            tentative_g = g_score[current] + euclidean_dist(graph.get_position(current), graph.get_position(neighbor))
-            if neighbor not in g_score or tentative_g < g_score[neighbor]:
-                parent[neighbor] = current
-                g_score[neighbor] = tentative_g
-                f_score = tentative_g + heuristic(neighbor)
+            temp_g = g_score[current] + euclidean_dist(graph.get_position(current), graph.get_position(neighbor))
+            if temp_g < g_score.get(neighbor, float('inf')):
+                g_score[neighbor] = temp_g
+                prev[neighbor] = current
+                f_score = temp_g + heuristic(neighbor)
                 heapq.heappush(open_set, (f_score, neighbor))
-
-    return reconstruct_path(parent, start_node, dest_node)
+    path_nodes = reconstruct_path(prev, start_node, dest_node)
+    return [graph.get_position(v) for v in path_nodes]
 
 def bellman_ford(start, dest):
     start_node = graph.find_closest_vertex(start)
@@ -193,7 +184,10 @@ def bellman_ford(start, dest):
                 if dist[u] + weight < dist[v]:
                     dist[v] = dist[u] + weight
                     prev[v] = u
-    return reconstruct_path(prev, start_node, dest_node)
+    if dist[dest_node] == float('inf'):
+        return []
+    path_nodes = reconstruct_path(prev, start_node, dest_node)
+    return [graph.get_position(v) for v in path_nodes]
 
 def bellman_ford_negative(start, dest):
     start_node = graph.find_closest_vertex(start)
@@ -210,7 +204,10 @@ def bellman_ford_negative(start, dest):
                 if dist[u] + weight < dist[v]:
                     dist[v] = dist[u] + weight
                     prev[v] = u
-    return reconstruct_path(prev, start_node, dest_node)
+    if dist[dest_node] == float('inf'):
+        return []
+    path_nodes = reconstruct_path(prev, start_node, dest_node)
+    return [graph.get_position(v) for v in path_nodes]
 
 def min_spanning_tree(start, dest):
     parent = {}
@@ -218,7 +215,6 @@ def min_spanning_tree(start, dest):
     pq = []
     start_node = graph.find_closest_vertex(start)
     heapq.heappush(pq, (0, start_node, None))
-
     while pq:
         weight, node, prev_node = heapq.heappop(pq)
         if node in visited:
@@ -230,22 +226,12 @@ def min_spanning_tree(start, dest):
             if neighbor not in visited:
                 edge_weight = euclidean_dist(graph.get_position(node), graph.get_position(neighbor))
                 heapq.heappush(pq, (edge_weight, neighbor, node))
-
     dest_node = graph.find_closest_vertex(dest)
-    return reconstruct_path(parent, start_node, dest_node)
-
-
-breadth_first = breadth_first
-depth_first = depth_first
+    path_nodes = reconstruct_path(parent, start_node, dest_node)
+    return [graph.get_position(v) for v in path_nodes]
 
 def search(algorithm, start, dest):
-    if algorithm == 'p2p':
-        return point_to_point(start, dest)
-    elif algorithm == 'fly':
-        return fly(start, dest)
-    elif algorithm == 'random':
-        return random_graph(start, dest)
-    elif algorithm == 'bfs':
+    if algorithm == 'bfs':
         return breadth_first(start, dest)
     elif algorithm == 'bfsh':
         return breadth_first_hub(start, dest)
